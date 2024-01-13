@@ -1,0 +1,17 @@
+name: "Youtube Transcript API"
+description: "Expose a simple Youtube Transcript API"
+version: "1.0.0"
+slug: "youtube_transcript_api"
+init: false
+ports: {
+  "3025/tcp": 3025
+}
+ports_description: {
+  "3025/tcp": "YouTube API Endpoint"
+}
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386

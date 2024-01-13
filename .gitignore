@@ -1,0 +1,20 @@
+# Ignore Python compiled files
+*.pyc
+__pycache__/
+
+# Ignore local development environment settings
+.env
+
+# Ignore the virtual environment
+venv/
+env/
+
+# Ignore logs and other temporary files
+*.log
+*.swp
+*~
+
+# Ignore OS and editor-specific files
+.DS_Store
+.idea/
+.vscode/
