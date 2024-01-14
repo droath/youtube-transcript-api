@@ -44,6 +44,7 @@ def process_transcript_chunks(chunks: List[str]):
 def extract_video_id(url: str) -> Optional[str]:
     patterns = [
         r"youtu\.be\/([^?]+)",
+        r"youtube\.com\/live\/([^?/]+)",
         r"youtube\.com\/(?:embed|v|watch)\?v=([^?]+)",
         r"youtube\.com\/(?:embed|v|watch)\?.*?&v=([^&]+)",
         r"youtube\.com\/(?:embed|v|watch)\?.*?\?(?:.*?&)?v=([^&]+)"
