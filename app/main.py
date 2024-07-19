@@ -1,8 +1,10 @@
-import re
-from typing import Optional, List
+from datetime import timedelta
+
 from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException
-from youtube_transcript_api import YouTubeTranscriptApi
+from pytube import YouTube
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, \
+    NoTranscriptAvailable
 
 app = FastAPI()
 
@@ -13,46 +15,32 @@ class YoutubeTranscriptData(BaseModel):
 
 @app.post("/youtube/transcript")
 async def get_transcript(data: YoutubeTranscriptData):
-    video_id = extract_video_id(data.url)
+    try:
+        yt = YouTube(data.url)
 
-    if video_id is None:
+        try:
+            chunks = YouTubeTranscriptApi.get_transcript(yt.video_id)
+        except (TranscriptsDisabled, NoTranscriptAvailable) as e:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Transcript not available: {str(e)}"
+            )
+
+        return {
+            "title": getattr(yt, "title", "Undefined"),
+            "views": getattr(yt, "views", 0),
+            "author": getattr(yt, "author", "Unknown"),
+            "length": str(timedelta(seconds=yt.length)),
+            "published": (yt.publish_date.strftime("%Y-%m-%d")
+                          if yt.publish_date else None),
+            "thumbnail": yt.thumbnail_url,
+            "transcript": (
+                ' '.join(chunk.get('text', '') for chunk in chunks)
+                .strip()
+            ),
+        }
+    except Exception as e:
         raise HTTPException(
-            status_code=400,
-            detail="Invalid YouTube URL"
+            status_code=404,
+            detail=f"Error processing video: {str(e)}"
         )
-
-    chunks = YouTubeTranscriptApi.get_transcript(video_id)
-
-    if not chunks:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid YouTube Transcript Chunks"
-        )
-
-    return {
-        "transcript": process_transcript_chunks(chunks)
-    }
-
-
-def process_transcript_chunks(chunks: List[str]):
-    transcript = ""
-    for chunk in chunks:
-        transcript += chunk["text"] + " "
-    return transcript.strip()
-
-
-def extract_video_id(url: str) -> Optional[str]:
-    patterns = [
-        r"youtu\.be\/([^?]+)",
-        r"youtube\.com\/live\/([^?/]+)",
-        r"youtube\.com\/(?:embed|v|watch)\?v=([^?]+)",
-        r"youtube\.com\/(?:embed|v|watch)\?.*?&v=([^&]+)",
-        r"youtube\.com\/(?:embed|v|watch)\?.*?\?(?:.*?&)?v=([^&]+)"
-    ]
-
-    for pattern in patterns:
-        match = re.search(pattern, url)
-        if match and match.group(1):
-            return match.group(1)
-
-    return None
